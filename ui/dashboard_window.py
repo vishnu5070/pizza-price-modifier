@@ -2,6 +2,7 @@ import customtkinter as ctk
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
+import threading
 from services.excel_service import ExcelService
 from services.audit_service import AuditService
 from services.s3_service import S3Service
@@ -18,6 +19,8 @@ class DashboardWindow(ctk.CTkFrame):
         self.s3_service = S3Service()
         
         self.current_updated_file = None
+        self._progress_value = 0
+        self._is_processing = False
         
         self.init_ui()
 
@@ -128,27 +131,63 @@ class DashboardWindow(ctk.CTkFrame):
         self.upload_btn = ctk.CTkButton(bottom_frame, text="Upload To S3", command=self.upload_to_s3, state="disabled")
         self.upload_btn.grid(row=0, column=1, sticky="w")
         
-        self.progress_bar = ctk.CTkProgressBar(bottom_frame, width=150, mode="indeterminate")
-        self.progress_bar.grid(row=0, column=2, sticky="e", padx=(0, 15))
-        self.progress_bar.grid_remove() # hide initially
+        self.progress_container = ctk.CTkFrame(bottom_frame, fg_color="transparent")
+        self.progress_container.grid(row=0, column=2, sticky="e", padx=(0, 15))
+        self.progress_container.grid_remove() # hide initially
+        
+        self.progress_bar = ctk.CTkProgressBar(self.progress_container, width=150, mode="determinate")
+        self.progress_bar.pack(side="left", padx=(0, 5))
+        self.progress_bar.set(0)
+        
+        self.progress_label = ctk.CTkLabel(self.progress_container, text="0%", width=40)
+        self.progress_label.pack(side="left")
         
         self.status_label = ctk.CTkLabel(bottom_frame, text="Status: Ready", text_color="gray")
         self.status_label.grid(row=0, column=3, sticky="e")
 
+    def _start_progress(self, status_text):
+        self.progress_container.grid()
+        self.status_label.configure(text=f"Status: {status_text}")
+        self._progress_value = 0
+        self.progress_bar.set(0)
+        self.progress_label.configure(text="0%")
+        self._is_processing = True
+        self._animate_progress()
+
+    def _animate_progress(self):
+        if self._is_processing and self._progress_value < 90:
+            # Simulate real loading percentage jump
+            self._progress_value += 3  
+            if self._progress_value > 90:
+                self._progress_value = 90
+            self.progress_bar.set(self._progress_value / 100.0)
+            self.progress_label.configure(text=f"{self._progress_value}%")
+            self.after(50, self._animate_progress)
+
+    def _complete_progress(self):
+        self._is_processing = False
+        self._progress_value = 100
+        self.progress_bar.set(1.0)
+        self.progress_label.configure(text="100%")
+        self.master.update()
+        self.after(1500, self.progress_container.grid_remove)
+
     def browse_file(self):
         file_path = filedialog.askopenfilename(title="Select Excel File", filetypes=[("Excel Files", "*.xlsx")])
         if file_path:
-            self.progress_bar.grid()
-            self.progress_bar.start()
-            self.status_label.configure(text="Status: Loading file...")
+            self._start_progress("Loading file...")
             self.apply_btn.configure(state="disabled")
-            self.master.update()
             
-            # defer execution so the UI refreshes and shows the progress bar animation
-            self.after(500, self._process_file_load, file_path)
+            # Start actual work in a thread so UI doesn't freeze
+            threading.Thread(target=self._threaded_load_file, args=(file_path,), daemon=True).start()
 
-    def _process_file_load(self, file_path):
-        if self.excel_service.load_file(file_path):
+    def _threaded_load_file(self, file_path):
+        success = self.excel_service.load_file(file_path)
+        self.after(0, self._process_file_load_complete, file_path, success)
+
+    def _process_file_load_complete(self, file_path, success):
+        self._complete_progress()
+        if success:
             self.file_label.configure(text=f"Selected File: {file_path.split('/')[-1]}")
             self.populate_categories()
             self.status_label.configure(text="Status: File loaded successfully.")
@@ -158,9 +197,6 @@ class DashboardWindow(ctk.CTkFrame):
         else:
             messagebox.showerror("Error", "Failed to load Excel file.")
             self.status_label.configure(text="Status: Error loading file.")
-            
-        self.progress_bar.stop()
-        self.progress_bar.grid_remove()
 
     def populate_categories(self):
         categories = self.excel_service.get_categories()
@@ -223,17 +259,18 @@ class DashboardWindow(ctk.CTkFrame):
         reply = messagebox.askyesno('Confirm', f"Apply {price_change} to all '{category}' pizzas?")
         
         if reply:
-            self.progress_bar.grid()
-            self.progress_bar.start()
-            self.status_label.configure(text="Status: Applying unit price...")
+            self._start_progress("Applying unit price...")
             self.apply_btn.configure(state="disabled")
-            self.master.update()
             
-            # defer execution so the UI refreshes and shows the progress bar animation
-            self.after(500, self._process_apply_changes, category, price_change)
+            # Start actual work in a thread so UI doesn't freeze
+            threading.Thread(target=self._threaded_apply_changes, args=(category, price_change), daemon=True).start()
 
-    def _process_apply_changes(self, category, price_change):
+    def _threaded_apply_changes(self, category, price_change):
         success, rows_modified, new_path = self.excel_service.apply_and_save(category, price_change)
+        self.after(0, self._process_apply_changes_complete, category, price_change, success, rows_modified, new_path)
+
+    def _process_apply_changes_complete(self, category, price_change, success, rows_modified, new_path):
+        self._complete_progress()
         if success:
             self.current_updated_file = new_path
             self.audit_service.log_change(
@@ -250,9 +287,6 @@ class DashboardWindow(ctk.CTkFrame):
             messagebox.showerror("Error", f"Failed to apply changes: {new_path}")
             self.status_label.configure(text="Status: Error saving changes.")
             self.apply_btn.configure(state="normal")
-            
-        self.progress_bar.stop()
-        self.progress_bar.grid_remove()
 
     def upload_to_s3(self):
         if not self.current_updated_file:
