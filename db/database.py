@@ -13,15 +13,6 @@ def init_db():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Create users table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL
-        )
-    ''')
-
     # Create audit_logs table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS audit_logs (

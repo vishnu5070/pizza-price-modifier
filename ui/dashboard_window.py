@@ -1,5 +1,7 @@
 import customtkinter as ctk
 import tkinter as tk
+import os
+import json
 from tkinter import filedialog, messagebox, simpledialog
 from tkinter import ttk
 from services.excel_service import ExcelService
@@ -20,6 +22,21 @@ class DashboardWindow(ctk.CTkFrame):
         self.current_updated_file = None
         
         self.init_ui()
+
+    def _get_presign_api_url(self):
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'config.json')
+        try:
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as cf:
+                    cfg = json.load(cf)
+                endpoint = cfg.get('presign_api_url')
+                if endpoint:
+                    endpoint = endpoint.strip()
+                    if endpoint and 'your-api-gateway-endpoint-here' not in endpoint and 'example' not in endpoint.lower():
+                        return endpoint
+        except Exception:
+            pass
+        return None
 
     def init_ui(self):
         self.grid_columnconfigure(0, weight=1)
@@ -96,7 +113,7 @@ class DashboardWindow(ctk.CTkFrame):
         file_path = filedialog.askopenfilename(title="Select Excel File", filetypes=[("Excel Files", "*.xlsx")])
         if file_path:
             if self.excel_service.load_file(file_path):
-                self.file_label.configure(text=f"Selected File: {file_path.split('/')[-1]}")
+                self.file_label.configure(text=f"Selected File: {os.path.basename(file_path)}")
                 self.populate_categories()
                 self.status_label.configure(text="Status: File loaded successfully.")
                 self.current_updated_file = None
@@ -177,7 +194,7 @@ class DashboardWindow(ctk.CTkFrame):
                     price_change,
                     rows_modified
                 )
-                self.status_label.configure(text=f"Status: Changes saved to {new_path.split('/')[-1]}")
+                self.status_label.configure(text=f"Status: Changes saved to {os.path.basename(new_path)}")
                 messagebox.showinfo("Success", f"Successfully updated {rows_modified} records.")
                 self.upload_btn.configure(state="normal")
                 self.apply_btn.configure(state="disabled")
@@ -189,19 +206,48 @@ class DashboardWindow(ctk.CTkFrame):
     def upload_to_s3(self):
         if not self.current_updated_file:
             return
-            
+        # Ask whether to upload via fresh presigned URL from backend or direct bucket
+        use_presign = messagebox.askyesno(
+            "Upload Method",
+            "Use backend presigned-URL flow? (Yes = backend URL -> fresh presigned URL -> S3, No = direct bucket upload)",
+        )
+
+        self.status_label.configure(text="Status: Uploading to S3...")
+        self.master.update()
+
+        if use_presign:
+            presign_api_url = self._get_presign_api_url()
+            if not presign_api_url:
+                presign_api_url = simpledialog.askstring(
+                    "Presign API",
+                    "Enter backend endpoint that returns a fresh presigned URL (POST):"
+                )
+                if not presign_api_url:
+                    self.status_label.configure(text="Status: Upload cancelled.")
+                    return
+
+            success, message = self.s3_service.upload_file(
+                self.current_updated_file,
+                presign_api_url=presign_api_url,
+            )
+            if success:
+                self.status_label.configure(text="Status: Successfully uploaded to S3.")
+                messagebox.showinfo("Success", "File uploaded to S3 successfully via backend-generated presigned URL.")
+            else:
+                self.status_label.configure(text="Status: S3 upload failed.")
+                messagebox.showerror("Error", f"Failed to upload via backend-generated presigned URL.\nDetails: {message}")
+
+            return
+
         bucket_name = simpledialog.askstring("S3 Upload", "Enter S3 Bucket Name:")
         if bucket_name:
-            self.status_label.configure(text="Status: Uploading to S3...")
-            # We would need to handle master or parent here if necessary, but simpledialog takes focus
-            self.master.update()
-            success = self.s3_service.upload_file(self.current_updated_file, bucket_name)
+            success, message = self.s3_service.upload_file(self.current_updated_file, bucket_name=bucket_name.strip())
             if success:
                 self.status_label.configure(text="Status: Successfully uploaded to S3.")
                 messagebox.showinfo("Success", "File uploaded to S3 successfully.")
             else:
                 self.status_label.configure(text="Status: S3 upload failed.")
-                messagebox.showerror("Error", "Failed to upload to S3. Check credentials and bucket name.")
+                messagebox.showerror("Error", f"Failed to upload to S3. Details: {message}")
 
     def handle_logout(self):
         self.auth_service.logout()

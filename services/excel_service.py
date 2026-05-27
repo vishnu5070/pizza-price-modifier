@@ -3,6 +3,9 @@ import os
 import shutil
 from typing import List, Dict, Tuple
 
+
+UPDATED_FILES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'updated_excels')
+
 class ExcelService:
     def __init__(self):
         self.file_path = None
@@ -69,8 +72,11 @@ class ExcelService:
             self.df.loc[mask, 'total_price'] = self.df.loc[mask, 'unit_price'] * self.df.loc[mask, 'quantity']
 
         try:
-            base, ext = os.path.splitext(self.file_path)
-            new_file_path = f"{base}_updated{ext}"
+            os.makedirs(UPDATED_FILES_DIR, exist_ok=True)
+
+            original_name = os.path.basename(self.file_path)
+            base, ext = os.path.splitext(original_name)
+            new_file_path = os.path.join(UPDATED_FILES_DIR, f"{base}_updated{ext}")
             
             # Write back maintaining column order from original reading, but normalized names
             self.df.to_excel(new_file_path, index=False)
