@@ -18,8 +18,8 @@ class PizzaPricingApp(ctk.CTk):
         self.auth_service.seed_admin()
 
         self.title("Pizza Pricing Tool")
-        self.geometry("800x600")
-        self.minsize(400, 350)
+        self.geometry("900x650")
+        self.minsize(600, 500)
         
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
@@ -36,7 +36,7 @@ class PizzaPricingApp(ctk.CTk):
         if self.current_window:
             self.current_window.grid_forget()
             
-        self.geometry("800x600")
+        self.geometry("900x650")
         self.dashboard_window = DashboardWindow(self, self.auth_service, self.show_login)
         self.dashboard_window.grid(row=0, column=0, sticky="nsew")
         self.current_window = self.dashboard_window
@@ -51,7 +51,7 @@ class PizzaPricingApp(ctk.CTk):
                 self.dashboard_window.destroy()
                 self.dashboard_window = None
                 
-        self.geometry("400x350")
+        self.geometry("500x450")
         self.login_window.grid(row=0, column=0, sticky="nsew")
         self.current_window = self.login_window
         
@@ -63,7 +63,7 @@ class PizzaPricingApp(ctk.CTk):
         if self.current_window:
             self.current_window.grid_forget()
             
-        self.geometry("400x350")
+        self.geometry("500x450")
         self.register_window.grid(row=0, column=0, sticky="nsew")
         self.current_window = self.register_window
 
