@@ -1,0 +1,623 @@
+{
+  "tree": {
+    "name": "003",
+    "path": "d:\\Intern\\003",
+    "type": "folder",
+    "attributes": {
+      "purpose": "Contains 7 items",
+      "folderType": "component",
+      "aiGenerated": false
+    },
+    "children": [
+      {
+        "name": "data",
+        "path": "d:\\Intern\\003\\data",
+        "type": "folder",
+        "attributes": {
+          "purpose": "Contains 1 items",
+          "folderType": "component",
+          "aiGenerated": false
+        },
+        "children": [
+          {
+            "name": "generate_dummy.py",
+            "path": "d:\\Intern\\003\\data\\generate_dummy.py",
+            "type": "file",
+            "fileCategory": "backend",
+            "extension": ".py",
+            "attributes": {
+              "layer": "Utility",
+              "complexity": 10,
+              "summary": "Provides generate_dummy helper utilities. Contains reusable functions and common operations.",
+              "keywords": [],
+              "dependencies": [
+                "pandas",
+                "os"
+              ],
+              "fileType": "backend",
+              "aiGenerated": false
+            }
+          }
+        ]
+      },
+      {
+        "name": "db",
+        "path": "d:\\Intern\\003\\db",
+        "type": "folder",
+        "attributes": {
+          "purpose": "Contains 1 items",
+          "folderType": "component",
+          "aiGenerated": false
+        },
+        "children": [
+          {
+            "name": "database.py",
+            "path": "d:\\Intern\\003\\db\\database.py",
+            "type": "file",
+            "fileCategory": "backend",
+            "extension": ".py",
+            "attributes": {
+              "layer": "Utility",
+              "complexity": 12,
+              "summary": "Provides database helper utilities. Contains reusable functions and common operations.",
+              "keywords": [],
+              "dependencies": [
+                "sqlite3",
+                "os"
+              ],
+              "fileType": "backend",
+              "aiGenerated": false
+            }
+          }
+        ]
+      },
+      {
+        "name": "main.py",
+        "path": "d:\\Intern\\003\\main.py",
+        "type": "file",
+        "fileCategory": "backend",
+        "extension": ".py",
+        "attributes": {
+          "layer": "Utility",
+          "complexity": 13,
+          "summary": "Provides main helper utilities. Contains reusable functions and common operations.",
+          "keywords": [],
+          "dependencies": [
+            "customtkinter",
+            "ui",
+            "LoginWindow",
+            "DashboardWindow",
+            "RegisterWindow",
+            "services",
+            "AuthService",
+            "db",
+            "init_db"
+          ],
+          "fileType": "backend",
+          "aiGenerated": false
+        }
+      },
+      {
+        "name": "README.md",
+        "path": "d:\\Intern\\003\\README.md",
+        "type": "file",
+        "fileCategory": "documentation",
+        "extension": ".md",
+        "attributes": {
+          "layer": "Utility",
+          "complexity": 12,
+          "summary": "Documentation for README module. Explains usage, features, and implementation details.",
+          "keywords": [
+            "Documentation",
+            "Markdown"
+          ],
+          "dependencies": [],
+          "fileType": "documentation",
+          "aiGenerated": false
+        }
+      },
+      {
+        "name": "requirements.txt",
+        "path": "d:\\Intern\\003\\requirements.txt",
+        "type": "file",
+        "fileCategory": "documentation",
+        "extension": ".txt",
+        "attributes": {
+          "layer": "Utility",
+          "complexity": 10,
+          "summary": "Documentation for requirements module. Explains usage, features, and implementation details.",
+          "keywords": [
+            "Documentation"
+          ],
+          "dependencies": [],
+          "fileType": "documentation",
+          "aiGenerated": false
+        }
+      },
+      {
+        "name": "services",
+        "path": "d:\\Intern\\003\\services",
+        "type": "folder",
+        "attributes": {
+          "purpose": "Contains 4 items",
+          "folderType": "component",
+          "aiGenerated": false
+        },
+        "children": [
+          {
+            "name": "audit_service.py",
+            "path": "d:\\Intern\\003\\services\\audit_service.py",
+            "type": "file",
+            "fileCategory": "backend",
+            "extension": ".py",
+            "attributes": {
+              "layer": "Backend",
+              "complexity": 10,
+              "summary": "Implements audit_service business logic. Processes data and coordinates services.",
+              "keywords": [],
+              "dependencies": [
+                "db",
+                "get_connection"
+              ],
+              "fileType": "backend",
+              "aiGenerated": false
+            }
+          },
+          {
+            "name": "auth_service.py",
+            "path": "d:\\Intern\\003\\services\\auth_service.py",
+            "type": "file",
+            "fileCategory": "backend",
+            "extension": ".py",
+            "attributes": {
+              "layer": "Backend",
+              "complexity": 13,
+              "summary": "Implements auth_service business logic. Processes data and coordinates services.",
+              "keywords": [],
+              "dependencies": [
+                "bcrypt",
+                "db",
+                "get_connection"
+              ],
+              "fileType": "backend",
+              "aiGenerated": false
+            }
+          },
+          {
+            "name": "excel_service.py",
+            "path": "d:\\Intern\\003\\services\\excel_service.py",
+            "type": "file",
+            "fileCategory": "backend",
+            "extension": ".py",
+            "attributes": {
+              "layer": "Backend",
+              "complexity": 14,
+              "summary": "Implements excel_service business logic. Processes data and coordinates services.",
+              "keywords": [],
+              "dependencies": [
+                "pandas",
+                "os",
+                "shutil",
+                "typing",
+                "List",
+                "original"
+              ],
+              "fileType": "backend",
+              "aiGenerated": false
+            }
+          },
+          {
+            "name": "s3_service.py",
+            "path": "d:\\Intern\\003\\services\\s3_service.py",
+            "type": "file",
+            "fileCategory": "backend",
+            "extension": ".py",
+            "attributes": {
+              "layer": "Backend",
+              "complexity": 11,
+              "summary": "Implements s3_service business logic. Processes data and coordinates services.",
+              "keywords": [],
+              "dependencies": [
+                "boto3",
+                "os"
+              ],
+              "fileType": "backend",
+              "aiGenerated": false
+            }
+          }
+        ]
+      },
+      {
+        "name": "ui",
+        "path": "d:\\Intern\\003\\ui",
+        "type": "folder",
+        "attributes": {
+          "purpose": "Contains 4 items",
+          "folderType": "component",
+          "aiGenerated": false
+        },
+        "children": [
+          {
+            "name": "dashboard_window.py",
+            "path": "d:\\Intern\\003\\ui\\dashboard_window.py",
+            "type": "file",
+            "fileCategory": "backend",
+            "extension": ".py",
+            "attributes": {
+              "layer": "Utility",
+              "complexity": 22,
+              "summary": "Provides dashboard_window helper utilities. Contains reusable functions and common operations.",
+              "keywords": [],
+              "dependencies": [
+                "customtkinter",
+                "tkinter",
+                "filedialog",
+                "ttk",
+                "services",
+                "ExcelService",
+                "AuditService",
+                "S3Service",
+                "AuthService"
+              ],
+              "fileType": "backend",
+              "aiGenerated": false
+            }
+          },
+          {
+            "name": "login_window.py",
+            "path": "d:\\Intern\\003\\ui\\login_window.py",
+            "type": "file",
+            "fileCategory": "backend",
+            "extension": ".py",
+            "attributes": {
+              "layer": "Utility",
+              "complexity": 12,
+              "summary": "Provides login_window helper utilities. Contains reusable functions and common operations.",
+              "keywords": [],
+              "dependencies": [
+                "customtkinter",
+                "tkinter",
+                "messagebox",
+                "services",
+                "AuthService"
+              ],
+              "fileType": "backend",
+              "aiGenerated": false
+            }
+          },
+          {
+            "name": "register_window.py",
+            "path": "d:\\Intern\\003\\ui\\register_window.py",
+            "type": "file",
+            "fileCategory": "backend",
+            "extension": ".py",
+            "attributes": {
+              "layer": "Utility",
+              "complexity": 12,
+              "summary": "Provides register_window helper utilities. Contains reusable functions and common operations.",
+              "keywords": [],
+              "dependencies": [
+                "customtkinter",
+                "tkinter",
+                "messagebox",
+                "services",
+                "AuthService"
+              ],
+              "fileType": "backend",
+              "aiGenerated": false
+            }
+          },
+          {
+            "name": "styles.py",
+            "path": "d:\\Intern\\003\\ui\\styles.py",
+            "type": "file",
+            "fileCategory": "backend",
+            "extension": ".py",
+            "attributes": {
+              "layer": "Utility",
+              "complexity": 14,
+              "summary": "Provides styles helper utilities. Contains reusable functions and common operations.",
+              "keywords": [],
+              "dependencies": [],
+              "fileType": "backend",
+              "aiGenerated": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "files": [
+    {
+      "name": "generate_dummy.py",
+      "path": "d:\\Intern\\003\\data\\generate_dummy.py",
+      "type": "file",
+      "fileCategory": "backend",
+      "extension": ".py",
+      "attributes": {
+        "layer": "Utility",
+        "complexity": 10,
+        "summary": "Provides generate_dummy helper utilities. Contains reusable functions and common operations.",
+        "keywords": [],
+        "dependencies": [
+          "pandas",
+          "os"
+        ],
+        "fileType": "backend",
+        "aiGenerated": false
+      }
+    },
+    {
+      "name": "database.py",
+      "path": "d:\\Intern\\003\\db\\database.py",
+      "type": "file",
+      "fileCategory": "backend",
+      "extension": ".py",
+      "attributes": {
+        "layer": "Utility",
+        "complexity": 12,
+        "summary": "Provides database helper utilities. Contains reusable functions and common operations.",
+        "keywords": [],
+        "dependencies": [
+          "sqlite3",
+          "os"
+        ],
+        "fileType": "backend",
+        "aiGenerated": false
+      }
+    },
+    {
+      "name": "main.py",
+      "path": "d:\\Intern\\003\\main.py",
+      "type": "file",
+      "fileCategory": "backend",
+      "extension": ".py",
+      "attributes": {
+        "layer": "Utility",
+        "complexity": 13,
+        "summary": "Provides main helper utilities. Contains reusable functions and common operations.",
+        "keywords": [],
+        "dependencies": [
+          "customtkinter",
+          "ui",
+          "LoginWindow",
+          "DashboardWindow",
+          "RegisterWindow",
+          "services",
+          "AuthService",
+          "db",
+          "init_db"
+        ],
+        "fileType": "backend",
+        "aiGenerated": false
+      }
+    },
+    {
+      "name": "README.md",
+      "path": "d:\\Intern\\003\\README.md",
+      "type": "file",
+      "fileCategory": "documentation",
+      "extension": ".md",
+      "attributes": {
+        "layer": "Utility",
+        "complexity": 12,
+        "summary": "Documentation for README module. Explains usage, features, and implementation details.",
+        "keywords": [
+          "Documentation",
+          "Markdown"
+        ],
+        "dependencies": [],
+        "fileType": "documentation",
+        "aiGenerated": false
+      }
+    },
+    {
+      "name": "requirements.txt",
+      "path": "d:\\Intern\\003\\requirements.txt",
+      "type": "file",
+      "fileCategory": "documentation",
+      "extension": ".txt",
+      "attributes": {
+        "layer": "Utility",
+        "complexity": 10,
+        "summary": "Documentation for requirements module. Explains usage, features, and implementation details.",
+        "keywords": [
+          "Documentation"
+        ],
+        "dependencies": [],
+        "fileType": "documentation",
+        "aiGenerated": false
+      }
+    },
+    {
+      "name": "audit_service.py",
+      "path": "d:\\Intern\\003\\services\\audit_service.py",
+      "type": "file",
+      "fileCategory": "backend",
+      "extension": ".py",
+      "attributes": {
+        "layer": "Backend",
+        "complexity": 10,
+        "summary": "Implements audit_service business logic. Processes data and coordinates services.",
+        "keywords": [],
+        "dependencies": [
+          "db",
+          "get_connection"
+        ],
+        "fileType": "backend",
+        "aiGenerated": false
+      }
+    },
+    {
+      "name": "auth_service.py",
+      "path": "d:\\Intern\\003\\services\\auth_service.py",
+      "type": "file",
+      "fileCategory": "backend",
+      "extension": ".py",
+      "attributes": {
+        "layer": "Backend",
+        "complexity": 13,
+        "summary": "Implements auth_service business logic. Processes data and coordinates services.",
+        "keywords": [],
+        "dependencies": [
+          "bcrypt",
+          "db",
+          "get_connection"
+        ],
+        "fileType": "backend",
+        "aiGenerated": false
+      }
+    },
+    {
+      "name": "excel_service.py",
+      "path": "d:\\Intern\\003\\services\\excel_service.py",
+      "type": "file",
+      "fileCategory": "backend",
+      "extension": ".py",
+      "attributes": {
+        "layer": "Backend",
+        "complexity": 14,
+        "summary": "Implements excel_service business logic. Processes data and coordinates services.",
+        "keywords": [],
+        "dependencies": [
+          "pandas",
+          "os",
+          "shutil",
+          "typing",
+          "List",
+          "original"
+        ],
+        "fileType": "backend",
+        "aiGenerated": false
+      }
+    },
+    {
+      "name": "s3_service.py",
+      "path": "d:\\Intern\\003\\services\\s3_service.py",
+      "type": "file",
+      "fileCategory": "backend",
+      "extension": ".py",
+      "attributes": {
+        "layer": "Backend",
+        "complexity": 11,
+        "summary": "Implements s3_service business logic. Processes data and coordinates services.",
+        "keywords": [],
+        "dependencies": [
+          "boto3",
+          "os"
+        ],
+        "fileType": "backend",
+        "aiGenerated": false
+      }
+    },
+    {
+      "name": "dashboard_window.py",
+      "path": "d:\\Intern\\003\\ui\\dashboard_window.py",
+      "type": "file",
+      "fileCategory": "backend",
+      "extension": ".py",
+      "attributes": {
+        "layer": "Utility",
+        "complexity": 22,
+        "summary": "Provides dashboard_window helper utilities. Contains reusable functions and common operations.",
+        "keywords": [],
+        "dependencies": [
+          "customtkinter",
+          "tkinter",
+          "filedialog",
+          "ttk",
+          "services",
+          "ExcelService",
+          "AuditService",
+          "S3Service",
+          "AuthService"
+        ],
+        "fileType": "backend",
+        "aiGenerated": false
+      }
+    },
+    {
+      "name": "login_window.py",
+      "path": "d:\\Intern\\003\\ui\\login_window.py",
+      "type": "file",
+      "fileCategory": "backend",
+      "extension": ".py",
+      "attributes": {
+        "layer": "Utility",
+        "complexity": 12,
+        "summary": "Provides login_window helper utilities. Contains reusable functions and common operations.",
+        "keywords": [],
+        "dependencies": [
+          "customtkinter",
+          "tkinter",
+          "messagebox",
+          "services",
+          "AuthService"
+        ],
+        "fileType": "backend",
+        "aiGenerated": false
+      }
+    },
+    {
+      "name": "register_window.py",
+      "path": "d:\\Intern\\003\\ui\\register_window.py",
+      "type": "file",
+      "fileCategory": "backend",
+      "extension": ".py",
+      "attributes": {
+        "layer": "Utility",
+        "complexity": 12,
+        "summary": "Provides register_window helper utilities. Contains reusable functions and common operations.",
+        "keywords": [],
+        "dependencies": [
+          "customtkinter",
+          "tkinter",
+          "messagebox",
+          "services",
+          "AuthService"
+        ],
+        "fileType": "backend",
+        "aiGenerated": false
+      }
+    },
+    {
+      "name": "styles.py",
+      "path": "d:\\Intern\\003\\ui\\styles.py",
+      "type": "file",
+      "fileCategory": "backend",
+      "extension": ".py",
+      "attributes": {
+        "layer": "Utility",
+        "complexity": 14,
+        "summary": "Provides styles helper utilities. Contains reusable functions and common operations.",
+        "keywords": [],
+        "dependencies": [],
+        "fileType": "backend",
+        "aiGenerated": false
+      }
+    }
+  ],
+  "projectSummary": {
+    "description": "Project with 13 analyzable files",
+    "techStack": [
+      "Backend"
+    ],
+    "stats": {
+      "code": 0,
+      "style": 0,
+      "markup": 0,
+      "data": 0,
+      "backend": 11,
+      "documentation": 2,
+      "script": 0,
+      "other": 0
+    },
+    "architecture": "Full-stack"
+  },
+  "stats": {
+    "totalFiles": 13,
+    "aiAnalyzed": 0
+  },
+  "timestamp": "2026-05-27T09:46:01.647Z",
+  "version": "current"
+}

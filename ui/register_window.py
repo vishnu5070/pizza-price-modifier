@@ -21,13 +21,13 @@ class RegisterWindow(ctk.CTkFrame):
         header = ctk.CTkLabel(main_frame, text="Create Account", font=("Segoe UI", 24, "bold"))
         header.grid(row=0, column=0, pady=(30, 20), padx=40)
 
-        self.username_input = ctk.CTkEntry(main_frame, placeholder_text="Username", width=250, height=35)
+        self.username_input = ctk.CTkEntry(main_frame, placeholder_text="username", width=250, height=35)
         self.username_input.grid(row=1, column=0, pady=(0, 10), padx=40)
 
-        self.password_input = ctk.CTkEntry(main_frame, placeholder_text="Password", width=250, height=35, show="*")
+        self.password_input = ctk.CTkEntry(main_frame, placeholder_text="enter password", width=250, height=35, show="*")
         self.password_input.grid(row=2, column=0, pady=(0, 10), padx=40)
 
-        self.confirm_password_input = ctk.CTkEntry(main_frame, placeholder_text="Confirm Password", width=250, height=35, show="*")
+        self.confirm_password_input = ctk.CTkEntry(main_frame, placeholder_text="re enter password", width=250, height=35, show="*")
         self.confirm_password_input.grid(row=3, column=0, pady=(0, 20), padx=40)
 
         self.register_btn = ctk.CTkButton(main_frame, text="Register", command=self.handle_register, width=250, height=35, font=("Segoe UI", 14, "bold"))

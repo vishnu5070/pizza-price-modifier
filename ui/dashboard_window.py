@@ -59,7 +59,7 @@ class DashboardWindow(ctk.CTkFrame):
         self.category_cb = ctk.CTkOptionMenu(filter_frame, values=["- Select -"], width=130)
         self.category_cb.pack(side="left", padx=(0, 15))
         
-        ctk.CTkLabel(filter_frame, text="Change:").pack(side="left", padx=(0, 5))
+        ctk.CTkLabel(filter_frame, text="Unit Price:").pack(side="left", padx=(0, 5))
         self.price_input = ctk.CTkEntry(filter_frame, placeholder_text="e.g. +5 or -2.5", width=110)
         self.price_input.pack(side="left", padx=(0, 15))
         
@@ -72,7 +72,7 @@ class DashboardWindow(ctk.CTkFrame):
         table_container.grid_columnconfigure(0, weight=1)
         table_container.grid_rowconfigure(1, weight=1)
         
-        table_lbl = ctk.CTkLabel(table_container, text="Price Change Preview", font=("Segoe UI", 16, "bold"))
+        table_lbl = ctk.CTkLabel(table_container, text="Unit Price Preview", font=("Segoe UI", 16, "bold"))
         table_lbl.grid(row=0, column=0, sticky="w", padx=15, pady=(10, 5))
         
         # Configure treeview style matching customtkinter
@@ -122,29 +122,45 @@ class DashboardWindow(ctk.CTkFrame):
         bottom_frame.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 20))
         bottom_frame.grid_columnconfigure(2, weight=1)
         
-        self.apply_btn = ctk.CTkButton(bottom_frame, text="Apply Changes & Save", command=self.apply_changes, state="disabled", fg_color="#28a745", hover_color="#218838")
+        self.apply_btn = ctk.CTkButton(bottom_frame, text="Apply Unit Price & Save", command=self.apply_changes, state="disabled", fg_color="#28a745", hover_color="#218838")
         self.apply_btn.grid(row=0, column=0, padx=(0, 10))
         
         self.upload_btn = ctk.CTkButton(bottom_frame, text="Upload To S3", command=self.upload_to_s3, state="disabled")
         self.upload_btn.grid(row=0, column=1, sticky="w")
         
+        self.progress_bar = ctk.CTkProgressBar(bottom_frame, width=150, mode="indeterminate")
+        self.progress_bar.grid(row=0, column=2, sticky="e", padx=(0, 15))
+        self.progress_bar.grid_remove() # hide initially
+        
         self.status_label = ctk.CTkLabel(bottom_frame, text="Status: Ready", text_color="gray")
-        self.status_label.grid(row=0, column=2, sticky="e")
+        self.status_label.grid(row=0, column=3, sticky="e")
 
     def browse_file(self):
         file_path = filedialog.askopenfilename(title="Select Excel File", filetypes=[("Excel Files", "*.xlsx")])
         if file_path:
-            if self.excel_service.load_file(file_path):
-                self.file_label.configure(text=f"Selected File: {file_path.split('/')[-1]}")
-                self.populate_categories()
-                self.status_label.configure(text="Status: File loaded successfully.")
-                self.current_updated_file = None
-                self.upload_btn.configure(state="disabled")
-                self.clear_table()
-                self.apply_btn.configure(state="disabled")
-            else:
-                messagebox.showerror("Error", "Failed to load Excel file.")
-                self.status_label.configure(text="Status: Error loading file.")
+            self.progress_bar.grid()
+            self.progress_bar.start()
+            self.status_label.configure(text="Status: Loading file...")
+            self.apply_btn.configure(state="disabled")
+            self.master.update()
+            
+            # defer execution so the UI refreshes and shows the progress bar animation
+            self.after(500, self._process_file_load, file_path)
+
+    def _process_file_load(self, file_path):
+        if self.excel_service.load_file(file_path):
+            self.file_label.configure(text=f"Selected File: {file_path.split('/')[-1]}")
+            self.populate_categories()
+            self.status_label.configure(text="Status: File loaded successfully.")
+            self.current_updated_file = None
+            self.upload_btn.configure(state="disabled")
+            self.clear_table()
+        else:
+            messagebox.showerror("Error", "Failed to load Excel file.")
+            self.status_label.configure(text="Status: Error loading file.")
+            
+        self.progress_bar.stop()
+        self.progress_bar.grid_remove()
 
     def populate_categories(self):
         categories = self.excel_service.get_categories()
@@ -174,7 +190,7 @@ class DashboardWindow(ctk.CTkFrame):
             
         price_change = self.get_price_change()
         if price_change is None:
-            messagebox.showwarning("Validation Error", "Please enter a valid numeric price change (e.g. 5, -2).")
+            messagebox.showwarning("Validation Error", "Please enter a valid numeric unit price (e.g. 5, -2).")
             return
 
         preview_data = self.excel_service.preview_changes(category, price_change)
@@ -207,23 +223,36 @@ class DashboardWindow(ctk.CTkFrame):
         reply = messagebox.askyesno('Confirm', f"Apply {price_change} to all '{category}' pizzas?")
         
         if reply:
-            success, rows_modified, new_path = self.excel_service.apply_and_save(category, price_change)
-            if success:
-                self.current_updated_file = new_path
-                self.audit_service.log_change(
-                    self.auth_service.get_current_user(),
-                    category,
-                    price_change,
-                    rows_modified
-                )
-                self.status_label.configure(text=f"Status: Changes saved to {new_path.split('/')[-1]}")
-                messagebox.showinfo("Success", f"Successfully updated {rows_modified} records.")
-                self.upload_btn.configure(state="normal")
-                self.apply_btn.configure(state="disabled")
-                self.clear_table()
-            else:
-                messagebox.showerror("Error", f"Failed to apply changes: {new_path}")
-                self.status_label.configure(text="Status: Error saving changes.")
+            self.progress_bar.grid()
+            self.progress_bar.start()
+            self.status_label.configure(text="Status: Applying unit price...")
+            self.apply_btn.configure(state="disabled")
+            self.master.update()
+            
+            # defer execution so the UI refreshes and shows the progress bar animation
+            self.after(500, self._process_apply_changes, category, price_change)
+
+    def _process_apply_changes(self, category, price_change):
+        success, rows_modified, new_path = self.excel_service.apply_and_save(category, price_change)
+        if success:
+            self.current_updated_file = new_path
+            self.audit_service.log_change(
+                self.auth_service.get_current_user(),
+                category,
+                price_change,
+                rows_modified
+            )
+            self.status_label.configure(text="Status: Changes applied")
+            messagebox.showinfo("Success", f"Successfully updated {rows_modified} records.")
+            self.upload_btn.configure(state="normal")
+            self.clear_table()
+        else:
+            messagebox.showerror("Error", f"Failed to apply changes: {new_path}")
+            self.status_label.configure(text="Status: Error saving changes.")
+            self.apply_btn.configure(state="normal")
+            
+        self.progress_bar.stop()
+        self.progress_bar.grid_remove()
 
     def upload_to_s3(self):
         if not self.current_updated_file:
