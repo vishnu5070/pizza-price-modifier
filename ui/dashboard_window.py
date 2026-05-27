@@ -1,6 +1,6 @@
 import customtkinter as ctk
 import tkinter as tk
-from tkinter import filedialog, messagebox, simpledialog
+from tkinter import filedialog, messagebox
 from tkinter import ttk
 from services.excel_service import ExcelService
 from services.audit_service import AuditService
@@ -23,50 +23,89 @@ class DashboardWindow(ctk.CTkFrame):
 
     def init_ui(self):
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(3, weight=1)
+        self.grid_rowconfigure(2, weight=1)
 
         # Header
         header_frame = ctk.CTkFrame(self, fg_color="transparent")
-        header_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=20)
+        header_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
         header_frame.grid_columnconfigure(0, weight=1)
         
-        welcome_label = ctk.CTkLabel(header_frame, text=f"Welcome, {self.auth_service.get_current_user()}", font=("Segoe UI", 18, "bold"))
+        welcome_label = ctk.CTkLabel(header_frame, text=f"Dashboard - Welcome, {self.auth_service.get_current_user()}", font=("Segoe UI", 24, "bold"))
         welcome_label.grid(row=0, column=0, sticky="w")
         
-        logout_btn = ctk.CTkButton(header_frame, text="Logout", command=self.handle_logout, width=100)
+        logout_btn = ctk.CTkButton(header_frame, text="Logout", command=self.handle_logout, width=100, fg_color="transparent", border_width=1, text_color=("gray10", "gray90"))
         logout_btn.grid(row=0, column=1, sticky="e")
 
+        # Controls Container (File + Filters)
+        controls_container = ctk.CTkFrame(self)
+        controls_container.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 20))
+        controls_container.grid_columnconfigure(1, weight=1)
+
         # File Selection
-        file_frame = ctk.CTkFrame(self, fg_color="transparent")
-        file_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 20))
+        file_frame = ctk.CTkFrame(controls_container, fg_color="transparent")
+        file_frame.grid(row=0, column=0, sticky="ew", padx=15, pady=15)
         
-        browse_btn = ctk.CTkButton(file_frame, text="Browse File", command=self.browse_file, width=120)
-        browse_btn.pack(side="left", padx=(0, 10))
+        browse_btn = ctk.CTkButton(file_frame, text="Browse Excel File", command=self.browse_file, width=140)
+        browse_btn.pack(side="left", padx=(0, 15))
         
-        self.file_label = ctk.CTkLabel(file_frame, text="Selected File: None")
+        self.file_label = ctk.CTkLabel(file_frame, text="Selected File: None", text_color="gray")
         self.file_label.pack(side="left")
 
-        # Controls
-        controls_frame = ctk.CTkFrame(self, fg_color="transparent")
-        controls_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 20))
+        # Filters
+        filter_frame = ctk.CTkFrame(controls_container, fg_color="transparent")
+        filter_frame.grid(row=0, column=1, sticky="e", padx=15, pady=15)
         
-        ctk.CTkLabel(controls_frame, text="Pizza Category:").pack(side="left", padx=(0, 5))
-        self.category_cb = ctk.CTkOptionMenu(controls_frame, values=[], width=150)
-        self.category_cb.pack(side="left", padx=(0, 20))
+        ctk.CTkLabel(filter_frame, text="Category:").pack(side="left", padx=(0, 5))
+        self.category_cb = ctk.CTkOptionMenu(filter_frame, values=["- Select -"], width=130)
+        self.category_cb.pack(side="left", padx=(0, 15))
         
-        ctk.CTkLabel(controls_frame, text="Price Change:").pack(side="left", padx=(0, 5))
-        self.price_input = ctk.CTkEntry(controls_frame, placeholder_text="e.g. +5 or -2.5", width=120)
-        self.price_input.pack(side="left", padx=(0, 20))
+        ctk.CTkLabel(filter_frame, text="Change:").pack(side="left", padx=(0, 5))
+        self.price_input = ctk.CTkEntry(filter_frame, placeholder_text="e.g. +5 or -2.5", width=110)
+        self.price_input.pack(side="left", padx=(0, 15))
         
-        preview_btn = ctk.CTkButton(controls_frame, text="Preview", command=self.generate_preview, width=100)
+        preview_btn = ctk.CTkButton(filter_frame, text="Preview", command=self.generate_preview, width=100)
         preview_btn.pack(side="left")
 
-        # Preview Table (using ttk.Treeview as customtkinter doesn't have a table widget yet)
-        table_frame = ctk.CTkFrame(self)
-        table_frame.grid(row=3, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        # Preview Table 
+        table_container = ctk.CTkFrame(self)
+        table_container.grid(row=2, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        table_container.grid_columnconfigure(0, weight=1)
+        table_container.grid_rowconfigure(1, weight=1)
+        
+        table_lbl = ctk.CTkLabel(table_container, text="Price Change Preview", font=("Segoe UI", 16, "bold"))
+        table_lbl.grid(row=0, column=0, sticky="w", padx=15, pady=(10, 5))
+        
+        # Configure treeview style matching customtkinter
+        is_dark = ctk.get_appearance_mode() == "Dark"
+        bg_color = "#2b2b2b" if is_dark else "#dbdbdb"
+        text_color = "white" if is_dark else "black"
+        selected_color = "#1f538d"
+        
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("Treeview",
+                        background=bg_color,
+                        foreground=text_color,
+                        rowheight=30,
+                        fieldbackground=bg_color,
+                        bordercolor=bg_color,
+                        borderwidth=0,
+                        font=("Segoe UI", 10))
+        style.map('Treeview', background=[('selected', selected_color)])
+        style.configure("Treeview.Heading",
+                        background=selected_color,
+                        foreground="white",
+                        relief="flat",
+                        font=("Segoe UI", 10, "bold"),
+                        padding=5)
+        style.map("Treeview.Heading",
+                  background=[('active', '#14375e')])
+
+        table_frame = ctk.CTkFrame(table_container, fg_color="transparent")
+        table_frame.grid(row=1, column=0, sticky="nsew", padx=15, pady=(0, 15))
         table_frame.grid_columnconfigure(0, weight=1)
         table_frame.grid_rowconfigure(0, weight=1)
-        
+
         columns = ("Pizza Name", "Old Price", "New Price", "Difference")
         self.table = ttk.Treeview(table_frame, columns=columns, show="headings")
         for col in columns:
@@ -78,19 +117,19 @@ class DashboardWindow(ctk.CTkFrame):
         self.table.grid(row=0, column=0, sticky="nsew")
         scrollbar.grid(row=0, column=1, sticky="ns")
 
-        # Actions
-        actions_frame = ctk.CTkFrame(self, fg_color="transparent")
-        actions_frame.grid(row=4, column=0, sticky="ew", padx=20, pady=(0, 20))
+        # Actions and Status
+        bottom_frame = ctk.CTkFrame(self, fg_color="transparent")
+        bottom_frame.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 20))
+        bottom_frame.grid_columnconfigure(2, weight=1)
         
-        self.apply_btn = ctk.CTkButton(actions_frame, text="Apply Changes & Save", command=self.apply_changes, state="disabled")
-        self.apply_btn.pack(side="left", padx=(0, 10))
+        self.apply_btn = ctk.CTkButton(bottom_frame, text="Apply Changes & Save", command=self.apply_changes, state="disabled", fg_color="#28a745", hover_color="#218838")
+        self.apply_btn.grid(row=0, column=0, padx=(0, 10))
         
-        self.upload_btn = ctk.CTkButton(actions_frame, text="Upload To S3", command=self.upload_to_s3, state="disabled")
-        self.upload_btn.pack(side="left")
-
-        # Status
-        self.status_label = ctk.CTkLabel(self, text="Status: Ready")
-        self.status_label.grid(row=5, column=0, sticky="w", padx=20, pady=(0, 20))
+        self.upload_btn = ctk.CTkButton(bottom_frame, text="Upload To S3", command=self.upload_to_s3, state="disabled")
+        self.upload_btn.grid(row=0, column=1, sticky="w")
+        
+        self.status_label = ctk.CTkLabel(bottom_frame, text="Status: Ready", text_color="gray")
+        self.status_label.grid(row=0, column=2, sticky="e")
 
     def browse_file(self):
         file_path = filedialog.askopenfilename(title="Select Excel File", filetypes=[("Excel Files", "*.xlsx")])
@@ -113,8 +152,8 @@ class DashboardWindow(ctk.CTkFrame):
             self.category_cb.configure(values=categories)
             self.category_cb.set(categories[0])
         else:
-            self.category_cb.configure(values=[])
-            self.category_cb.set("")
+            self.category_cb.configure(values=["- Select -"])
+            self.category_cb.set("- Select -")
 
     def get_price_change(self) -> float:
         try:
@@ -129,7 +168,7 @@ class DashboardWindow(ctk.CTkFrame):
 
     def generate_preview(self):
         category = self.category_cb.get()
-        if not category:
+        if not category or category == "- Select -":
             messagebox.showwarning("Warning", "Please select a category.")
             return
             
@@ -190,10 +229,10 @@ class DashboardWindow(ctk.CTkFrame):
         if not self.current_updated_file:
             return
             
-        bucket_name = simpledialog.askstring("S3 Upload", "Enter S3 Bucket Name:")
+        dialog = ctk.CTkInputDialog(text="Enter S3 Bucket Name:", title="S3 Upload")
+        bucket_name = dialog.get_input()
         if bucket_name:
             self.status_label.configure(text="Status: Uploading to S3...")
-            # We would need to handle master or parent here if necessary, but simpledialog takes focus
             self.master.update()
             success = self.s3_service.upload_file(self.current_updated_file, bucket_name)
             if success:
