@@ -180,19 +180,9 @@ class DashboardWindow(ctk.CTkFrame):
     def browse_file(self):
         file_path = filedialog.askopenfilename(title="Select Excel File", filetypes=[("Excel Files", "*.xlsx")])
         if file_path:
-            if self.excel_service.load_file(file_path):
-                self.file_label.configure(text=f"Selected File: {os.path.basename(file_path)}")
-                self.populate_categories()
-                self.status_label.configure(text="Status: File loaded successfully.")
-                self.current_updated_file = None
-                self.upload_btn.configure(state="disabled")
-                self.clear_table()
-                self.apply_btn.configure(state="disabled")
-            else:
-                messagebox.showerror("Error", "Failed to load Excel file.")
-                self.status_label.configure(text="Status: Error loading file.")
             self._start_progress("Loading file...")
             self.apply_btn.configure(state="disabled")
+            self.upload_btn.configure(state="disabled")
             
             # Start actual work in a thread so UI doesn't freeze
             threading.Thread(target=self._threaded_load_file, args=(file_path,), daemon=True).start()
@@ -275,23 +265,6 @@ class DashboardWindow(ctk.CTkFrame):
         reply = messagebox.askyesno('Confirm', f"Apply {price_change} to all '{category}' pizzas?")
         
         if reply:
-            success, rows_modified, new_path = self.excel_service.apply_and_save(category, price_change)
-            if success:
-                self.current_updated_file = new_path
-                self.audit_service.log_change(
-                    self.auth_service.get_current_user(),
-                    category,
-                    price_change,
-                    rows_modified
-                )
-                self.status_label.configure(text=f"Status: Changes saved to {os.path.basename(new_path)}")
-                messagebox.showinfo("Success", f"Successfully updated {rows_modified} records.")
-                self.upload_btn.configure(state="normal")
-                self.apply_btn.configure(state="disabled")
-                self.clear_table()
-            else:
-                messagebox.showerror("Error", f"Failed to apply changes: {new_path}")
-                self.status_label.configure(text="Status: Error saving changes.")
             self._start_progress("Applying unit price...")
             self.apply_btn.configure(state="disabled")
             

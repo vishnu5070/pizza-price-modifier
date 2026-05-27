@@ -1,1 +1,6 @@
 .env
+
+# PyInstaller build output
+dist/
+build/
+*.spec
