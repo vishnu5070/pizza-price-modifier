@@ -4,3 +4,4 @@ openpyxl==3.1.2
 boto3==1.34.100
 bcrypt==4.1.3
 requests==2.32.3
+python-dotenv==1.0.1

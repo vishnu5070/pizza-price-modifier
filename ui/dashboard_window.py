@@ -1,8 +1,6 @@
 import customtkinter as ctk
 import tkinter as tk
 import os
-import json
-from tkinter import filedialog, messagebox, simpledialog
 from tkinter import filedialog, messagebox
 from tkinter import ttk
 import threading
@@ -27,20 +25,6 @@ class DashboardWindow(ctk.CTkFrame):
         
         self.init_ui()
 
-    def _get_presign_api_url(self):
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'config.json')
-        try:
-            if os.path.exists(config_path):
-                with open(config_path, 'r', encoding='utf-8') as cf:
-                    cfg = json.load(cf)
-                endpoint = cfg.get('presign_api_url')
-                if endpoint:
-                    endpoint = endpoint.strip()
-                    if endpoint and 'your-api-gateway-endpoint-here' not in endpoint and 'example' not in endpoint.lower():
-                        return endpoint
-        except Exception:
-            pass
-        return None
 
     def init_ui(self):
         self.grid_columnconfigure(0, weight=1)
@@ -148,6 +132,9 @@ class DashboardWindow(ctk.CTkFrame):
         
         self.upload_btn = ctk.CTkButton(bottom_frame, text="Upload To S3", command=self.upload_to_s3, state="disabled")
         self.upload_btn.grid(row=0, column=1, sticky="w")
+        
+        self.refresh_btn = ctk.CTkButton(bottom_frame, text="Refresh", command=self.refresh, width=90)
+        self.refresh_btn.grid(row=0, column=4, padx=(10,0))
         
         self.progress_container = ctk.CTkFrame(bottom_frame, fg_color="transparent")
         self.progress_container.grid(row=0, column=2, sticky="e", padx=(0, 15))
@@ -337,56 +324,39 @@ class DashboardWindow(ctk.CTkFrame):
     def upload_to_s3(self):
         if not self.current_updated_file:
             return
-        # Ask whether to upload via fresh presigned URL from backend or direct bucket
-        use_presign = messagebox.askyesno(
-            "Upload Method",
-            "Use backend presigned-URL flow? (Yes = backend URL -> fresh presigned URL -> S3, No = direct bucket upload)",
-        )
 
-        self.status_label.configure(text="Status: Uploading to S3...")
-        self.master.update()
+        self._start_progress("Uploading to S3...")
+        self.upload_btn.configure(state="disabled")
 
-        if use_presign:
-            presign_api_url = self._get_presign_api_url()
-            if not presign_api_url:
-                presign_api_url = simpledialog.askstring(
-                    "Presign API",
-                    "Enter backend endpoint that returns a fresh presigned URL (POST):"
-                )
-                if not presign_api_url:
-                    self.status_label.configure(text="Status: Upload cancelled.")
-                    return
+        threading.Thread(target=self._threaded_upload, daemon=True).start()
 
-            success, message = self.s3_service.upload_file(
-                self.current_updated_file,
-                presign_api_url=presign_api_url,
-            )
-            if success:
-                self.status_label.configure(text="Status: Successfully uploaded to S3.")
-                messagebox.showinfo("Success", "File uploaded to S3 successfully via backend-generated presigned URL.")
-            else:
-                self.status_label.configure(text="Status: S3 upload failed.")
-                messagebox.showerror("Error", f"Failed to upload via backend-generated presigned URL.\nDetails: {message}")
+    def _threaded_upload(self):
+        success, message = self.s3_service.upload_file(self.current_updated_file)
+        self.after(0, self._process_upload_complete, success, message)
 
-            return
-
-        bucket_name = simpledialog.askstring("S3 Upload", "Enter S3 Bucket Name:")
-        if bucket_name:
-            success, message = self.s3_service.upload_file(self.current_updated_file, bucket_name=bucket_name.strip())
-            
-        dialog = ctk.CTkInputDialog(text="Enter S3 Bucket Name:", title="S3 Upload")
-        bucket_name = dialog.get_input()
-        if bucket_name:
-            self.status_label.configure(text="Status: Uploading to S3...")
-            self.master.update()
-            success = self.s3_service.upload_file(self.current_updated_file, bucket_name)
-            if success:
-                self.status_label.configure(text="Status: Successfully uploaded to S3.")
-                messagebox.showinfo("Success", "File uploaded to S3 successfully.")
-            else:
-                self.status_label.configure(text="Status: S3 upload failed.")
-                messagebox.showerror("Error", f"Failed to upload to S3. Details: {message}")
+    def _process_upload_complete(self, success, message):
+        self._complete_progress()
+        if success:
+            self.status_label.configure(text="Status: Successfully uploaded to S3.")
+            messagebox.showinfo("Success", "File uploaded to S3 successfully.")
+        else:
+            self.status_label.configure(text="Status: S3 upload failed.")
+            messagebox.showerror("Error", f"Failed to upload to S3.\nDetails: {message}")
+            self.upload_btn.configure(state="normal")
 
     def handle_logout(self):
         self.auth_service.logout()
         self.on_logout()
+
+
+    def refresh(self):
+        """Reinitialize services and refresh UI state to pick up config changes."""
+        self.excel_service = ExcelService()
+        self.audit_service = AuditService()
+        self.s3_service = S3Service()
+        try:
+            self.populate_categories()
+        except Exception:
+            pass
+        self.status_label.configure(text="Status: Refreshed")
+        self.master.update()
