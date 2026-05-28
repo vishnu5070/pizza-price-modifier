@@ -3,7 +3,6 @@ from ui.login_window import LoginWindow
 from ui.dashboard_window import DashboardWindow
 from ui.register_window import RegisterWindow
 from services.auth_service import AuthService
-from db.database import init_db
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
@@ -12,8 +11,7 @@ class PizzaPricingApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         
-        # Initialize DB and seed admin
-        init_db()
+        # Initialize services and seed admin user
         self.auth_service = AuthService()
         self.auth_service.seed_admin()
 

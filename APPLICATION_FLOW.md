@@ -1,6 +1,6 @@
 # Pizza Pricing Tool Application Flow
 
-This document explains how the application runs from startup to logout, and what each source file does in that flow.
+This document explains how the application runs from startup to logout, and what each source file does in that flow. It also reflects the current runtime behavior where audit events are written to a JSONL file instead of SQLite.
 
 I am focusing on the source files that actually participate in the application. Generated folders such as build and dist are omitted because they do not control runtime behavior.
 
@@ -8,7 +8,7 @@ I am focusing on the source files that actually participate in the application. 
 
 ```mermaid
 flowchart TD
-    A[main.py starts the app] --> B[init_db creates SQLite audit table]
+    A[main.py starts the app] --> B[Application initializes services]
     B --> C[AuthService loads local credentials]
     C --> D[seed_admin ensures default admin exists]
     D --> E[LoginWindow is shown first]
@@ -20,7 +20,7 @@ flowchart TD
     I --> J[User selects category and price change]
     J --> K[Preview changes in table]
     K --> L[Apply changes to DataFrame and save updated Excel]
-    L --> M[AuditService writes audit row to SQLite]
+    L --> M[AuditService appends JSONL audit record]
     L --> N[S3Service uploads the updated file]
     N --> O[Logout returns to login screen]
     O --> E
@@ -30,13 +30,12 @@ flowchart TD
 
 ### 1) `main.py`
 
-This is the application entry point. It creates the top-level CustomTkinter window, initializes the database, seeds the default admin user, creates the login and register views, and switches between views.
+This is the application entry point. It creates the top-level CustomTkinter window, initializes runtime services, seeds the default admin user, creates the login and register views, and switches between views.
 
 Key responsibilities:
 
 - Imports the UI frames and the backend services they depend on.
 - Sets the global appearance theme for CustomTkinter.
-- Calls `init_db()` so the audit database exists before the UI starts.
 - Creates `AuthService` and calls `seed_admin()` so the app always has a working default account.
 - Creates the login and register windows once, then swaps them in and out of the grid.
 - Creates the dashboard only after a successful login.
@@ -116,7 +115,7 @@ Key responsibilities:
 - Shows a preview table before changes are committed.
 - Applies the price update to the selected category.
 - Saves the modified file to the updated_excels folder.
-- Logs the change to SQLite.
+- Appends an audit record to a file-based JSONL log.
 - Uploads the updated file to S3 or a presigned URL target.
 - Shows progress indicators while work happens in background threads.
 
@@ -126,7 +125,7 @@ How it fits into the flow:
 - The dashboard creates its own `ExcelService`, `AuditService`, and `S3Service` instances.
 - Browsing for a file starts a worker thread so the GUI does not freeze while Pandas loads the spreadsheet.
 - Preview generation uses the loaded DataFrame but does not yet modify the file.
-- Applying changes starts another worker thread, writes a new Excel file, logs the event, and enables upload.
+- Applying changes starts another worker thread, writes a new Excel file, appends an audit entry, and enables upload.
 - Uploading also runs in a worker thread.
 
 Important control flow details:
@@ -137,7 +136,7 @@ Important control flow details:
 - `generate_preview()` checks that a category is selected and that the price change is numeric.
 - `apply_changes()` asks for confirmation before modifying data.
 - `_threaded_apply_changes()` calls `ExcelService.apply_and_save()` in the background.
-- `_process_apply_changes_complete()` logs the audit row if the save succeeded.
+- `_process_apply_changes_complete()` calls `AuditService.log_change()` to record the event in the JSONL file.
 - `upload_to_s3()` uses the currently saved updated file only.
 - `_threaded_upload()` delegates the actual network call to `S3Service`.
 - `handle_logout()` clears the authenticated session and returns to the login view.
@@ -219,23 +218,21 @@ Implementation notes:
 
 ### 7) `services/audit_service.py`
 
-This file writes a record every time a price change is applied successfully.
+This file appends a record every time a price change is applied successfully.
 
 Key responsibilities:
 
-- Opens a SQLite connection through `db.database.get_connection()`.
-- Inserts a row into `audit_logs`.
-- Commits the transaction and closes the connection.
+- Appends a JSON-formatted audit record to `data/audit_logs.jsonl`.
 
 How it fits into the flow:
 
-- `DashboardWindow._process_apply_changes_complete()` calls `log_change()` only after the spreadsheet is saved successfully.
-- The audit row records the username, category, change value, and how many rows were modified.
+- `DashboardWindow._process_apply_changes_complete()` calls `log_change()` after the spreadsheet is saved successfully.
+- The audit entry records the username, category, change value, rows modified, and a timestamp.
 
 Implementation notes:
 
-- The timestamp is not passed in manually; the database default fills it in.
-- The method returns True on success and False on failure, but the current UI mainly uses it for logging side effects.
+- The log file is newline-delimited JSON (JSONL). Each line is one JSON object.
+- The file is appended to — older history remains unless you delete or rotate the file.
 
 ### 8) `services/s3_service.py`
 
@@ -269,25 +266,11 @@ Environment notes:
 - The .env file in this repository currently contains `PRESIGN_API_URL` and `S3_BUCKET_NAME`.
 - AWS credentials must still be available to boto3 if the fallback direct upload path is used.
 
-### 9) `db/database.py`
+### 9) `db/database.py` (legacy)
 
-This file sets up the local SQLite database used for audit logging.
+This project previously used an internal SQLite helper (`db/database.py`) and created an on-disk database (`data/pizza_tool.db`) for audit logs. That module has since been removed and is no longer part of the runtime flow.
 
-Key responsibilities:
-
-- Resolves the database file path under the data folder.
-- Opens a SQLite connection with row objects enabled.
-- Creates the `audit_logs` table if it does not already exist.
-
-How it fits into the flow:
-
-- `main.py` calls `init_db()` at startup.
-- `AuditService` uses `get_connection()` whenever it needs to insert a log entry.
-
-Implementation notes:
-
-- The database file is created automatically if missing.
-- The audit table includes an autoincrement id and a timestamp default.
+If you still have `data/pizza_tool.db` and want to keep the historical audit data, make a backup before deleting it. The modern runtime writes audit records to `data/audit_logs.jsonl` instead.
 
 ### 10) `ui/styles.py`
 
@@ -374,8 +357,8 @@ Security note:
 - The active application flow is CustomTkinter-based, not PyQt6-based.
 - The runtime upload path uses .env, not `data/config.json`.
 - `ui/styles.py` is currently unused by the active GUI.
-- `build/` and `dist/` are generated artifacts and are not part of the source flow.
+- SQLite-based DB module was removed; audit logs are now written to `data/audit_logs.jsonl`.
 
 ## Short Summary
 
-The application starts in `main.py`, initializes the SQLite audit database, seeds a default admin account, and opens the login screen. After login, the dashboard lets the user load an Excel file, preview a category-wide price change, apply and save the modification, log the change to SQLite, and upload the updated file to S3. Authentication is local and file-based, while spreadsheet handling and upload logic live in separate service classes.
+The application starts in `main.py`, initializes runtime services, seeds a default admin account, and opens the login screen. After login, the dashboard lets the user load an Excel file, preview a category-wide price change, apply and save the modification, append an audit record to `data/audit_logs.jsonl`, and upload the updated file to S3. Authentication is local and file-based, while spreadsheet handling and upload logic live in separate service classes.
