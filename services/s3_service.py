@@ -5,8 +5,6 @@ from urllib.parse import urlparse, urlunparse
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from pathlib import Path
 
-import boto3
-from botocore.exceptions import BotoCoreError, ClientError
 import requests
 from dotenv import load_dotenv
 
@@ -21,16 +19,7 @@ def _get_env_presign_api_url() -> Optional[str]:
     return url if url else None
 
 
-def _get_env_bucket() -> Optional[str]:
-    """Read S3_BUCKET_NAME from environment (loaded from .env)."""
-    bucket = os.environ.get("S3_BUCKET_NAME", "").strip()
-    return bucket if bucket else None
-
-
 class S3Service:
-    def __init__(self):
-        self.client = boto3.client("s3")
-
     def _normalize_presign_api_url(self, presign_api_url: str) -> str:
         """Accept a full invoke URL or a stage-only URL and append the route when missing."""
         route_path = "/gets3presigneduplodurl"
@@ -131,18 +120,14 @@ class S3Service:
         except OSError as exc:
             return False, f"Failed to read file: {exc}"
 
-    def upload_file(self, file_path: str, bucket_name: Optional[str] = None, presign_api_url: Optional[str] = None, presigned_url: Optional[str] = None) -> Tuple[bool, str]:
-        """Upload file via presign API (default) or direct boto3. Returns (success, message)."""
+    def upload_file(self, file_path: str, presign_api_url: Optional[str] = None, presigned_url: Optional[str] = None) -> Tuple[bool, str]:
+        """Upload file via presigned URL only. Bucket name is ignored."""
         if not file_path or not os.path.exists(file_path):
             return False, "file not found"
 
         # ── Priority 1: Use presign API URL from .env if not explicitly passed ──
         if not presign_api_url and not presigned_url:
             presign_api_url = _get_env_presign_api_url()
-
-        # ── Priority 2: Fallback bucket from .env ──
-        if not bucket_name:
-            bucket_name = _get_env_bucket()
 
         if presign_api_url:
             presign_api_url = presign_api_url.strip()
@@ -153,7 +138,7 @@ class S3Service:
             except ValueError as exc:
                 return False, f"Invalid presign API URL: {exc}"
 
-        print(f"[S3Service] upload_file: file={file_path}, presign_api_url={'set' if presign_api_url else 'none'}, presigned_url={'set' if presigned_url else 'none'}, bucket={'set' if bucket_name else 'none'}")
+        print(f"[S3Service] upload_file: file={file_path}, presign_api_url={'set' if presign_api_url else 'none'}, presigned_url={'set' if presigned_url else 'none'}")
 
         # Use presigned URL directly if provided
         if presigned_url:
@@ -163,13 +148,4 @@ class S3Service:
         if presign_api_url:
             return self._upload_via_presigned(file_path, presign_api_url=presign_api_url)
 
-        # Last resort: direct boto3 upload
-        if not bucket_name:
-            return False, "No upload method available: set PRESIGN_API_URL in .env or provide a bucket name"
-
-        file_name = os.path.basename(file_path)
-        try:
-            self.client.upload_file(file_path, bucket_name, file_name)
-            return True, "OK"
-        except (BotoCoreError, ClientError, OSError) as exc:
-            return False, f"Failed to upload {file_name} via boto3: {exc}"
+        return False, "No upload method available: set PRESIGN_API_URL in .env or provide a presigned URL"
