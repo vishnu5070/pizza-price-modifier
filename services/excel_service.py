@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import shutil
 from typing import List, Dict, Tuple
-
+import uuid
 
 UPDATED_FILES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'updated_excels')
 
@@ -76,7 +76,7 @@ class ExcelService:
 
             original_name = os.path.basename(self.file_path)
             base, ext = os.path.splitext(original_name)
-            new_file_path = os.path.join(UPDATED_FILES_DIR, f"{base}_updated{ext}")
+            new_file_path = os.path.join(UPDATED_FILES_DIR, f"{base}_updated_{uuid.uuid4()}{ext}")
             
             # Write back maintaining column order from original reading, but normalized names
             self.df.to_excel(new_file_path, index=False)
