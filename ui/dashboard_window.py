@@ -43,6 +43,11 @@ class DashboardWindow(ctk.CTkFrame):
         # currently selected FileEntry
         self.selected_entry: FileEntry | None = None
 
+        # Bulk upload tracking
+        self._bulk_total = 0
+        self._bulk_done = 0
+        self._bulk_failed = 0
+
         self.init_ui()
 
     # ── Layout ────────────────────────────────────────────────────────────────
@@ -64,10 +69,24 @@ class DashboardWindow(ctk.CTkFrame):
         btn_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
         btn_frame.grid(row=0, column=1, sticky="e")
 
+        # Bulk upload status badge (hidden until a bulk upload runs)
+        self.bulk_status_lbl = ctk.CTkLabel(
+            btn_frame, text="", font=("Segoe UI", 11, "bold"),
+            text_color="#1f83d4",
+        )
+        self.bulk_status_lbl.pack(side="left", padx=(0, 10))
+
         ctk.CTkButton(
             btn_frame, text="＋ Add Files", command=self.browse_files,
             width=110, font=("Segoe UI", 13, "bold"),
         ).pack(side="left", padx=(0, 8))
+
+        self.upload_all_btn = ctk.CTkButton(
+            btn_frame, text="⬆ Upload All to S3", command=self.bulk_upload_all_to_s3,
+            width=145, fg_color="#1f538d", hover_color="#14375e",
+            font=("Segoe UI", 12, "bold"),
+        )
+        self.upload_all_btn.pack(side="left", padx=(0, 8))
 
         ctk.CTkButton(
             btn_frame, text="Refresh", command=self.refresh,
@@ -574,7 +593,7 @@ class DashboardWindow(ctk.CTkFrame):
             self.detail_status_lbl.configure(text="Status: Error applying changes.")
             self.detail_apply_btn.configure(state="normal")
 
-    # ── Upload ─────────────────────────────────────────────────────────────────
+    # ── Single Upload ──────────────────────────────────────────────────────────
     def upload_to_s3(self):
         entry = self.selected_entry
         if not entry or not entry.updated_file_path:
@@ -584,26 +603,116 @@ class DashboardWindow(ctk.CTkFrame):
         self.detail_upload_btn.configure(state="disabled")
 
         threading.Thread(
-            target=self._threaded_upload, args=(entry,), daemon=True
+            target=self._threaded_upload, args=(entry, False), daemon=True
         ).start()
 
-    def _threaded_upload(self, entry: FileEntry):
+    def _threaded_upload(self, entry: FileEntry, is_bulk: bool):
         success, message = self.s3_service.upload_file(entry.updated_file_path)
-        self.after(0, self._on_upload_complete, entry, success, message)
+        self.after(0, self._on_upload_complete, entry, success, message, is_bulk)
 
-    def _on_upload_complete(self, entry: FileEntry, success: bool, message: str):
-        self._complete_progress()
+    def _on_upload_complete(self, entry: FileEntry, success: bool, message: str, is_bulk: bool = False):
         if success:
             entry.uploaded = True
-            self.detail_status_lbl.configure(text="Status: Uploaded to S3.")
             self._update_status_badge(entry)
             self._rebuild_file_list()
-            self.detail_upload_btn.configure(state="disabled")
-            messagebox.showinfo("Success", f"'{entry.name}' uploaded to S3.")
+            # Refresh detail panel upload button if this file is selected
+            if self.selected_entry is entry:
+                self.detail_upload_btn.configure(state="disabled")
+                self.detail_status_lbl.configure(text="Status: Uploaded to S3.")
         else:
-            self.detail_status_lbl.configure(text="Status: Upload failed.")
-            messagebox.showerror("Error", f"Upload failed.\n{message}")
-            self.detail_upload_btn.configure(state="normal")
+            if self.selected_entry is entry:
+                self.detail_status_lbl.configure(text="Status: Upload failed.")
+                self.detail_upload_btn.configure(state="normal")
+
+        if is_bulk:
+            self._bulk_done += 1
+            if not success:
+                self._bulk_failed += 1
+            self._update_bulk_status_label()
+            # All done
+            if self._bulk_done >= self._bulk_total:
+                self._on_bulk_upload_finished()
+        else:
+            self._complete_progress()
+            if success:
+                messagebox.showinfo("Success", f"'{entry.name}' uploaded to S3.")
+            else:
+                messagebox.showerror("Error", f"Upload failed.\n{message}")
+
+    # ── Bulk Upload ────────────────────────────────────────────────────────────
+    def bulk_upload_all_to_s3(self):
+        """Upload all applied-but-not-yet-uploaded files in parallel threads."""
+        pending = [
+            e for e in self.file_entries
+            if e.applied and not e.uploaded and e.updated_file_path
+        ]
+
+        if not pending:
+            messagebox.showinfo(
+                "Nothing to Upload",
+                "No applied files are ready for upload.\n"
+                "Apply price changes first, then use Upload All."
+            )
+            return
+
+        count = len(pending)
+        reply = messagebox.askyesno(
+            "Upload All to S3",
+            f"Upload {count} file(s) to S3 simultaneously?\n\n"
+            + "\n".join(f"  • {e.name}" for e in pending),
+        )
+        if not reply:
+            return
+
+        # Initialise counters
+        self._bulk_total = count
+        self._bulk_done = 0
+        self._bulk_failed = 0
+        self.bulk_status_lbl.configure(
+            text=f"⬆ Uploading 0 / {count}…", text_color="#1f83d4"
+        )
+        self.upload_all_btn.configure(state="disabled")
+
+        # Spawn one thread per file — true parallel S3 uploads
+        for entry in pending:
+            threading.Thread(
+                target=self._threaded_upload, args=(entry, True), daemon=True
+            ).start()
+
+    def _update_bulk_status_label(self):
+        remaining = self._bulk_total - self._bulk_done
+        if remaining > 0:
+            self.bulk_status_lbl.configure(
+                text=f"⬆ Uploading {self._bulk_done} / {self._bulk_total}…",
+                text_color="#1f83d4",
+            )
+        # Final update handled in _on_bulk_upload_finished
+
+    def _on_bulk_upload_finished(self):
+        success_count = self._bulk_total - self._bulk_failed
+        self.upload_all_btn.configure(state="normal")
+
+        if self._bulk_failed == 0:
+            self.bulk_status_lbl.configure(
+                text=f"✔ {success_count} / {self._bulk_total} uploaded",
+                text_color="#28a745",
+            )
+            messagebox.showinfo(
+                "Bulk Upload Complete",
+                f"All {success_count} file(s) uploaded to S3 successfully.",
+            )
+        else:
+            self.bulk_status_lbl.configure(
+                text=f"⚠ {success_count} ok, {self._bulk_failed} failed",
+                text_color="#dc3545",
+            )
+            messagebox.showwarning(
+                "Bulk Upload Partial",
+                f"{success_count} file(s) uploaded.\n"
+                f"{self._bulk_failed} file(s) failed — check individual files.",
+            )
+        # Auto-clear label after 6 seconds
+        self.after(6000, lambda: self.bulk_status_lbl.configure(text=""))
 
     # ── Helpers ────────────────────────────────────────────────────────────────
     def _populate_table(self, preview_data: list):
