@@ -34,7 +34,7 @@ class PizzaPricingApp(ctk.CTk):
         if self.current_window:
             self.current_window.grid_forget()
             
-        self.geometry("900x650")
+        self.geometry("1100x680")
         self.dashboard_window = DashboardWindow(self, self.auth_service, self.show_login)
         self.dashboard_window.grid(row=0, column=0, sticky="nsew")
         self.current_window = self.dashboard_window
