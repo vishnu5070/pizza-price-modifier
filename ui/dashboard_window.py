@@ -322,7 +322,7 @@ class DashboardWindow(ctk.CTkFrame):
         # File icon + name
         name_lbl = ctk.CTkLabel(
             card,
-            text=f"📄  {entry.name}",
+            text=f"{entry.name}",
             font=("Segoe UI", 11, "bold" if is_selected else "normal"),
             text_color=("white" if is_selected else ("gray10", "gray90")),
             anchor="w", wraplength=170, justify="left",
@@ -331,11 +331,11 @@ class DashboardWindow(ctk.CTkFrame):
 
         # Status badge
         if entry.uploaded:
-            badge_text, badge_color = "✔ Uploaded", "#28a745"
+            badge_text, badge_color = "Uploaded", "#fcfcfc"
         elif entry.applied:
-            badge_text, badge_color = "✔ Applied", "#17a2b8"
+            badge_text, badge_color = "Applied", "#17a2b8"
         elif entry.loaded:
-            badge_text, badge_color = "● Loaded", "#ffc107"
+            badge_text, badge_color = "Loaded", "#fefefe"
         else:
             badge_text, badge_color = "⏳ Loading…", "gray"
 
